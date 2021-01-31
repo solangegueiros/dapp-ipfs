@@ -6,10 +6,13 @@ import web3 from './web3';
 import ipfs from './ipfs';
 import storehash from './storehash';
 
+const ipfsUrl = "https://gateway.ipfs.io/ipfs/";
+
 class App extends Component {
  
   state = {
     ipfsHash:null,
+    imgUrl: null,
     buffer:'',
     ethAddress:'',
     blockNumber:'',
@@ -17,6 +20,16 @@ class App extends Component {
     gasUsed:'',
     txReceipt: ''   
   };
+
+  async componentWillMount() {
+    await this.loadBlockchainData()
+  }  
+
+  async loadBlockchainData() {
+    const hash = await storehash.methods.getHash().call()
+    await this.setState({ipfsHash: hash});
+    await this.setState({imgUrl: ipfsUrl+hash});
+  }
 
   captureFile =(event) => {
     event.stopPropagation()
@@ -35,7 +48,7 @@ class App extends Component {
   };
 
   onClick = async () => {
-    try{
+    try {
       this.setState({blockNumber:"waiting.."});
       this.setState({gasUsed:"waiting..."});
 
@@ -46,26 +59,25 @@ class App extends Component {
         this.setState({txReceipt});
       }); //await for getTransactionReceipt
 
-    await this.setState({blockNumber: this.state.txReceipt.blockNumber});
+      await this.setState({blockNumber: this.state.txReceipt.blockNumber});
+
       await this.setState({gasUsed: this.state.txReceipt.gasUsed});    
-    } //try
+    } 
     catch(error) {
       console.log(error);
-    } //catch
-  } //onClick
+    } 
+  } 
 
   onSubmit = async (event) => {
     event.preventDefault();
-    //bring in user's metamask account address
-    const accounts = await web3.eth.getAccounts();
-    
+    const accounts = await web3.eth.getAccounts();    
     console.log('Sending from Metamask account: ' + accounts[0]);
 
     //obtain contract address from storehash.js
     const ethAddress= await storehash.options.address;
     this.setState({ethAddress});
 
-    console.log('buffer: ' + this.state.buffer);
+    //console.log('buffer: ' + this.state.buffer);
 
     //save document to IPFS,return its hash#, and set hash# to state
     //https://github.com/ipfs/interface-ipfs-core/blob/master/SPEC/FILES.md#add 
@@ -145,6 +157,8 @@ class App extends Component {
             </tbody>
           </Table>
         </Container>
+
+        {this.state.imgUrl && <img src={this.state.imgUrl} />}
       </div>
     );
   } //render
